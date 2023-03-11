@@ -1,2 +1,2 @@
 # OVSegmentor
-OVSegmentor, CVPR23
+Comming soon
