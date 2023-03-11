@@ -1,0 +1,2 @@
+# OVSegmentor
+OVSegmentor, CVPR23
