@@ -1,0 +1,4 @@
+imagenet_info/
+*.pyc
+*.pth
+*.pt
