@@ -89,7 +89,7 @@ class ClipDataset(BaseDataset):
     """
 
     def __init__(self, root_dir, meta_file, img_transform=None, text_transform=None,
-                 read_from='mc', evaluator=None, image_reader_type='pil',
+                 read_from='dir', evaluator=None, image_reader_type='pil',
                  fseek=False, label_texts_ensemble='none', split='train',
                  cross_image=False, use_entity=True, mask_type='class', use_distilbert=True, class_label_dir=None, sample_list_dir=None,
                  ):
@@ -205,13 +205,14 @@ class ClipDataset(BaseDataset):
         filename = osp.join(self.root_dir[0], filename)
         curr_meta = {'filename':filename, 'caption':caption}
         
-        ### load via bytes ###
-        # img_bytes = self.read_file(curr_meta)
-        # img = self.image_reader(img_bytes, filename)
-
-        ### load via dir ###
-        img = Image.open(filename).convert('RGB')
-
+        if self.read_from == 'dir':
+            ### load via dir ###
+            img = Image.open(filename).convert('RGB')
+        else:
+            ### load via bytes ###
+            img_bytes = self.read_file(curr_meta)
+            img = self.image_reader(img_bytes, filename)
+        
         caption = curr_meta['caption'] if 'caption' in curr_meta else ''
         raw_caption = curr_meta['caption'] if 'caption' in curr_meta else ''
         caption, nouns, locs, _ = self.text_transform(caption)
@@ -234,12 +235,14 @@ class ClipDataset(BaseDataset):
 
         try:
             assert self.is_contains_chinese(caption) == False
-            ### load from bytes ###
-            # img_bytes = self.read_file(curr_meta)
-            # img = self.image_reader(img_bytes, filename)
 
-            ### load from dir ###
-            img = Image.open(filename).convert('RGB')
+            if self.read_from == 'dir':
+                ### load from dir ###
+                img = Image.open(filename).convert('RGB')
+            else:
+                ### load from bytes ###
+                img_bytes = self.read_file(curr_meta)
+                img = self.image_reader(img_bytes, filename)
 
             if self.img_transform is not None:
                 image = self.img_transform(img)

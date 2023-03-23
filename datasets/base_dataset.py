@@ -12,7 +12,7 @@ try:
 except ImportError:
     pass
 # import ceph
-from petrel_client.client import Client
+# from petrel_client.client import Client
 
 
 class BaseDataset(Dataset):

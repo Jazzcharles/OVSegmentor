@@ -12,7 +12,8 @@ data:
       meta_file: [
                   '/mnt/petrelfs/xujilan/data/cc12m_100/cc4m.json',
                 ]
-      read_from: petrel
+      # read_from: petrel
+      read_from: dir
       use_dali: True
       batch_size: 256
       input_size: 224
