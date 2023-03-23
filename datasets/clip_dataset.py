@@ -22,6 +22,7 @@ from ipdb import set_trace
 from .tokenizer import SimpleTokenizer
 from .imagenet_template import full_imagenet_templates
 from nltk.stem import WordNetLemmatizer
+from PIL import Image
 lemmatizer = WordNetLemmatizer()
 
 ### frequently appeared 100 entities ###
@@ -203,8 +204,14 @@ class ClipDataset(BaseDataset):
         # filename = curr_meta['filename']
         filename = osp.join(self.root_dir[0], filename)
         curr_meta = {'filename':filename, 'caption':caption}
-        img_bytes = self.read_file(curr_meta)
-        img = self.image_reader(img_bytes, filename)
+        
+        ### load via bytes ###
+        # img_bytes = self.read_file(curr_meta)
+        # img = self.image_reader(img_bytes, filename)
+
+        ### load via dir ###
+        img = Image.open(filename).convert('RGB')
+
         caption = curr_meta['caption'] if 'caption' in curr_meta else ''
         raw_caption = curr_meta['caption'] if 'caption' in curr_meta else ''
         caption, nouns, locs, _ = self.text_transform(caption)
@@ -227,9 +234,13 @@ class ClipDataset(BaseDataset):
 
         try:
             assert self.is_contains_chinese(caption) == False
-            img_bytes = self.read_file(curr_meta)
-        
-            img = self.image_reader(img_bytes, filename)
+            ### load from bytes ###
+            # img_bytes = self.read_file(curr_meta)
+            # img = self.image_reader(img_bytes, filename)
+
+            ### load from dir ###
+            img = Image.open(filename).convert('RGB')
+
             if self.img_transform is not None:
                 image = self.img_transform(img)
                     

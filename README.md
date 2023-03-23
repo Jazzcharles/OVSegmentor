@@ -63,7 +63,7 @@ Or simply use torch.distributed.launch as:
 ./tools/run.sh
 ```
 
-After that, please specify the checkpoint path from the 1st stage training in the config file used in the 2nd stage training (e.g. configs/ovsegmentor/ovsegmentor_pretrain_vit_bert_stage2.yml). During cross-image sampling, we sample another image that share the same entity with the current image. This is achieved by (1) identifying the visual entity for the image. (2) Perform sampling over the valid candidates. We offer the pre-processed [class_label.json](https://drive.google.com/file/d/15s0Pwn11bkB-RqGmpzf7z6lYPOd1sIZF/view?usp=share_link) and [here](https://drive.google.com/file/d/10sA94ZawsgL0E01im9-5xZciWnsCZOQz/view?usp=share_link).
+After that, please specify the checkpoint path from the 1st stage training in the config file used in the 2nd stage training (e.g. configs/ovsegmentor/ovsegmentor_pretrain_vit_bert_stage2.yml). During cross-image sampling, we sample another image that share the same entity with the current image. This is achieved by (1) identifying the visual entity for the image. (2) Perform sampling over the valid candidates. We offer the pre-processed [class_label.json](https://drive.google.com/file/d/15s0Pwn11bkB-RqGmpzf7z6lYPOd1sIZF/view?usp=share_link) and [sample_list.json](https://drive.google.com/file/d/10sA94ZawsgL0E01im9-5xZciWnsCZOQz/view?usp=share_link).
 
 We also provide our pre-trained 1st stage checkpoint from [here](https://drive.google.com/file/d/19Kpeh5iTgGSr5mzf4n0j5hqxGDgG-Wxi/view?usp=share_link).
 
