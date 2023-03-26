@@ -23,7 +23,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 from datasets import build_text_transform
-from main_group_vit import validate_seg
+from main_pretrain import validate_seg
 from mmcv.image import tensor2imgs
 from mmcv.parallel import MMDistributedDataParallel
 from mmcv.runner import set_random_seed
@@ -43,7 +43,8 @@ except ImportError:
     
 tokenizer_dict = {
     'Bert': AutoTokenizer.from_pretrained('distilbert-base-uncased', TOKENIZERS_PARALLELISM=False),
-    'Roberta': RobertaTokenizer.from_pretrained('/mnt/petrelfs/xujilan/roberta-base/'),
+    # 'Roberta': RobertaTokenizer.from_pretrained('/mnt/petrelfs/xujilan/roberta-base/'),
+    'Roberta': RobertaTokenizer.from_pretrained('roberta-base'),
     'TextTransformer': None,
 }
 

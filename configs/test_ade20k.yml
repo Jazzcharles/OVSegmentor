@@ -61,7 +61,7 @@ data:
               topk: [1, 5]
       label_texts_ensemble: 'prompt1'
           
-img_aug:
+  img_aug:
     deit_aug: false
     img_size: 224
     img_scale: [0.4, 1.0]
