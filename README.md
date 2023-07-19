@@ -97,10 +97,11 @@ The pre-trained models can be downloaded from here:
 ## Citation
 If this work is helpful for your research, please consider citing us.
 ```
-@article{xu2023learning,
-  title={Learning Open-vocabulary Semantic Segmentation Models From Natural Language Supervision},
+@inproceedings{xu2023learning,
+  title={Learning open-vocabulary semantic segmentation models from natural language supervision},
   author={Xu, Jilan and Hou, Junlin and Zhang, Yuejie and Feng, Rui and Wang, Yi and Qiao, Yu and Xie, Weidi},
-  journal={arXiv preprint arXiv:2301.09121},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  pages={2935--2944},
   year={2023}
 }
 ```
