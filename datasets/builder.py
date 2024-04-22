@@ -38,8 +38,7 @@ import nltk
 import numpy as np
 import torch
 import torch.distributed as dist
-import webdataset as wds
-from braceexpand import braceexpand
+
 from mmcv.parallel import collate
 from timm.data import create_transform
 from timm.data.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
@@ -95,7 +94,6 @@ def collate_fn(batch):
         
         'cross_image': cross_image,
         'cross_entity': cross_entity, 
-        
         'question': question,
         'answer': answer,
         
@@ -115,11 +113,12 @@ def build_loader(config):
     sampler_val = torch.utils.data.SequentialSampler(dataset_val)
     print('train batch size: ', config.train.batch_size)
     print('val batch size: ', config.val.batch_size)
+
     data_loader_train = torch.utils.data.DataLoader(
         dataset_train,
         sampler=sampler_train,
         batch_size=config.train.batch_size,
-        num_workers=config.num_workers,
+        num_workers=config.train.num_workers,
         pin_memory=True,
         drop_last=True,
         persistent_workers=True,
@@ -143,24 +142,28 @@ def build_dataset(is_train, config):
     text_transform = build_text_transform(is_train, config.text_aug, config.with_dc)
     split = 'train' if is_train else 'val'
 
-    image_reader = config[split].get('image_reader', {})
     dataset = ClipDataset(
         root_dir=config[split]['root_dir'],
         meta_file=config[split]['meta_file'],
         img_transform=img_transform,
         text_transform=text_transform,
         read_from=config[split]['read_from'],
-        evaluator=None, # no evaluator for now
-        image_reader_type=image_reader.get('type', 'pil'),
-        fseek=config[split].get('fseek',False),
         split=split,
         cross_image=config[split].get('cross_image', False),
         mask_type=config[split].get('mask_type', 'class'),
         use_distilbert=config[split].get('use_distilbert', True),
-        class_label_dir=config[split].get('class_label_dir', None),
-        sample_list_dir=config[split].get('sample_list_dir', None),
     )
     print('dataset len: ', len(dataset))
+
+    # for i in range(10):
+    #     t = dataset.__getitem__(i)
+    #     print(t['image'].shape, t['cross_image'].shape)
+    #     print(t['caption'].shape, t['target'])
+    #     print(t['raw_caption'])
+    #     print(t['cross_caption'], '\t',  t['cross_entity'])
+    #     print(t['raw_question'], '\t', t['raw_answer'])
+    # set_trace()
+
     return dataset
 
 def build_img_transform(is_train, config, with_dc=True):

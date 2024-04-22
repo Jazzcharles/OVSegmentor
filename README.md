@@ -7,80 +7,95 @@ This repository is the official implementation of [Learning Open-Vocabulary Sema
 <img src="figs/model.png" width="100%">
 </div>
 
-## Requirements
-* Python 3.9
-* [torch=1.11.0+cu113](https://pytorch.org/)
-* [torchvision=0.14.1](https://pytorch.org/)
-* [apex=0.1](https://github.com/NVIDIA/apex)
-* [mmcv-full=1.3.14](https://github.com/open-mmlab/mmcv)
-* [mmsegmentation=0.18.0](https://github.com/open-mmlab/mmsegmentation)
-* [clip=1.0](https://github.com/openai/CLIP)
-
-We recommand installing apex with cuda and c++ extensions
-
-To install the other requirements:
-
-```setup
-pip install -r requirements.txt
-```
+## Prepare environment
+Please refer to [docs/ENV_README.md](./docs/ENV_README.md)
 
 ## Prepare datasets
-For training, we construct CC4M by filtering CC12M with a total number of 100 frequently appearred entities. The researchers are encouraged to prepare CC12M dataset from the [source](https://github.com/google-research-datasets/conceptual-12m) or using [img2dataset](https://github.com/rom1504/img2dataset). Note that, some url links may not be available any longer. The file structure should follow:
+Please refer to [docs/DATA_README.md](./docs/DATA_README.md)
 
-```shell
-CC12M
-├── 000002a0c848e78c7b9d53584e2d36ab0ac14785.jpg
-├── 000002ca5e5eab763d95fa8ac0df7a11f24519e5.jpg
-├── 00000440ca9fe337152041e26c37f619ec4c55b2.jpg
-...
+## Prepare model
+Please refer to [docs/MODEL_README.md](./docs/MODEL_README.md)
+
+## Demo 
+To directly use the model for open-vocab segmentation: 
+
+(1) Download the [pretrained model](https://drive.google.com/file/d/10F3b3FNzPdDx8LuKdjc1BzbSLMrPLvnc/view?usp=share_link). 
+
+(2) Prepare your images, place them in the same folder, for example, 
 ```
-We provide the meta-file for CC4M at [here](https://drive.google.com/file/d/1ENpsWndAkWc0UZJvdJJDicPxpzrPugve/view?usp=share_link) for data loading. One may also try different [image-caption datasets](https://github.com/rom1504/img2dataset) (e.g. YFCC, RedCaps) by providing the images and the corresponding meta-file. The meta-file is a json file containing each filename and its caption in a single line.
-```shell
-{"filename": "000002ca5e5eab763d95fa8ac0df7a11f24519e5.jpg", "caption": "A man's hand holds an orange pencil on white"}
-{"filename": "000009b46e38a28790f481f36366c781e03e4bbd.jpg", "caption": "Cooking is chemistry, except you CAN lick the spoon!"}
-...
+- OVSegmentor
+  - visualization
+    - input
+      - 1.jpg
+      - 2.jpg
+      ...
+    - output
 ```
-For evaluation, please follow the official websites to prepare [PASCAL VOC](https://github.com/open-mmlab/mmsegmentation/blob/master/docs/en/dataset_prepare.md#pascal-voc), [PASCAL Context](https://github.com/open-mmlab/mmsegmentation/blob/master/docs/en/dataset_prepare.md#pascal-context), [COCO](https://github.com/open-mmlab/mmsegmentation/blob/master/docs/en/dataset_prepare.md#coco-stuff-164k) converted to semantic seg format following [GroupViT](https://github.com/NVlabs/GroupViT), and [ADE20K](https://github.com/open-mmlab/mmsegmentation/blob/master/docs/en/dataset_prepare.md#ade20k). Remember to change the image dirs in segmentation/configs/_base_/datasets/*.py.
+(3) Option1 --- Perform segmentation using the vocabulary of existing classes (e.g. voc/coco/ade), simply run:
+```
+python -u -m main_demo
+    --cfg configs/test_voc12.yml \
+    --resume /path/to/the/pretrained_checkpoint.pth \
+    --vis input_pred_label \  
+    --vocab voc \
+    --image_folder ./visualization/input/ \
+    --output_folder ./visualization/output/ \
+```
 
-To enable zero-shot classification evaluation, please prepare the validation set of [ImageNet](https://www.image-net.org/) with its corresponding meta-file. 
+(3) Option2 --- Perform segmentation using the custom classes
+```
+python -u -m main_demo
+    --cfg configs/test_voc12.yml \
+    --resume /path/to/the/pretrained_checkpoint.pth \
+    --vis input_pred_label \  
+    --vocab cat dog train bus \ ### list your open-vocabulary classes here
+    --image_folder ./visualization/input/ \
+    --output_folder ./visualization/output/ \
+```
 
-## Other preparations
-1. The visual encoder is initialised with [DINO](https://dl.fbaipublicfiles.com/dino/dino_vitbase16_pretrain/dino_vitbase16_pretrain.pth). Edit the checkpoint path in the config file.
-2. Pre-trained BERT model and nltk_data should be downloaded automatically.
+You can also save the segmentation masks (e.g. for evaluation) by running
+```
+python -u -m main_demo
+    --cfg configs/test_voc12.yml \
+    --resume /path/to/the/pretrained_checkpoint.pth \
+    --vis mask \  
+    --vocab voc \
+    --image_folder ./visualization/input/ \
+    --output_folder ./visualization/output/ \
+```
 
 ## Training
 To train the model(s) in the paper, we separate the training process as a two-stage pipeline. The first stage is a 30-epoch training with image-caption contrastive loss and masked entity completion loss, and the second-stage 10-epoch training further adds the cross-image mask consistency loss. 
 
 For the first stage training on a single node with 8 A100 (80G) GPUs, we recommand to use slurm script to enable training:
 
-```train
-cd OVSegmentor
-./tools/run_slurm.sh
+```
+./scripts/run_slurm.sh
 ```
 Or simply use torch.distributed.launch as:
 
-```train
-./tools/run.sh
+```
+./scripts/run.sh
 ```
 
-After that, please specify the checkpoint path from the 1st stage training in the config file used in the 2nd stage training (e.g. configs/ovsegmentor/ovsegmentor_pretrain_vit_bert_stage2.yml). During cross-image sampling, we sample another image that share the same entity with the current image. This is achieved by (1) identifying the visual entity for the image. (2) Perform sampling over the valid candidates. We offer the pre-processed [class_label.json](https://drive.google.com/file/d/15s0Pwn11bkB-RqGmpzf7z6lYPOd1sIZF/view?usp=share_link) and [sample_list.json](https://drive.google.com/file/d/10sA94ZawsgL0E01im9-5xZciWnsCZOQz/view?usp=share_link).
-
-We also provide our pre-trained 1st stage checkpoint from [here](https://drive.google.com/file/d/19Kpeh5iTgGSr5mzf4n0j5hqxGDgG-Wxi/view?usp=share_link).
+Stage-2 training: change the 1st stage checkpoint in the [2nd stage config file](./configs/ovsegmentor/ovsegmentor_pretrain_vit_bert_stage2.yml). We also provide our pre-trained 1st stage checkpoint from [here](https://drive.google.com/file/d/19Kpeh5iTgGSr5mzf4n0j5hqxGDgG-Wxi/view?usp=share_link).
+```
+stage1_checkpoint: /path/to/your/stage1_best_miou.pth
+```
 
 Then, perform the second stage training. 
-```train
-./tools/run_slurm_stage2.sh
 ```
-We adjust a few hyperparameters in 2nd stage to stablize the training process.
+./scripts/run_slurm_stage2.sh
+```
 
 ## Evaluation
 
-To evaluate the model on PASCAL VOC, please specify the checkpoint path in tools/test_voc12.sh, and run:
+To evaluate the model on PASCAL VOC, please specify the resume checkpoint path in tools/test_voc12.sh, and run:
 
-```eval
-./tools/test_voc12.sh
 ```
-For PASCAL Context, COCO Object, and ADE20K, please refer to tools/.
+./scripts/test_voc12.sh
+```
+For PASCAL Context, COCO Object, and ADE20K, please refer to ./scripts/.
 
 The performance may vary 3%~4% due to different cross-image sampling. 
 

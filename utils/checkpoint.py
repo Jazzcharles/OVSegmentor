@@ -36,23 +36,18 @@ import torch
 import torch.distributed as dist
 from mmcv.runner import CheckpointLoader
 from omegaconf import read_write
-
 from .logger import get_logger
-from ipdb import set_trace
 
 try:
-    # noinspection PyUnresolvedReferences
     from apex import amp
 except ImportError:
     amp = None
-
 
 def load_checkpoint_stage1(config, model):
     logger = get_logger()
     logger.info(f'==============> Resuming stage1 checkpoint from {config.checkpoint.resume}....................')
     checkpoint = CheckpointLoader.load_checkpoint(config.checkpoint.stage1_checkpoint, map_location='cpu')
     ### load online model parameters ###
-    # msg = model.load_state_dict(checkpoint['model'], strict=False)
     new_state_dict = {}
     new_params = ['logit_scale_mask']
     for k, v in model.state_dict().items():
@@ -62,7 +57,6 @@ def load_checkpoint_stage1(config, model):
             new_state_dict[k] = checkpoint['model'][k]
         else:
             oldk = k.replace('img_encoder_momentum', 'img_encoder')
-            # new_state_dict[k] = checkpoint['model'][oldk]
             if oldk in checkpoint['model']:
                new_state_dict[k] = checkpoint['model'][oldk]
     
@@ -122,9 +116,6 @@ def save_checkpoint(config, epoch, model, metrics, optimizer, lr_scheduler, suff
         torch.save(save_state, save_path)
 
     ##### this is for per epoch saving, easy for resuming #####    
-    # filename = f'ckpt_epoch_{suffix}.pth' # only save the best one
-    # save_path = os.path.join(config.output, filename)
-    # logger.info(f'{save_path} saving......')
     if suffix == 'best_miou':
         print('saving best iou checkpoint')
         filename = 'best_miou.pth' # only save the best one
@@ -136,19 +127,6 @@ def save_checkpoint(config, epoch, model, metrics, optimizer, lr_scheduler, suff
         torch.save(save_state, current_save_path)
         logger.info(f'{current_save_path} saved !!!')
 
-    # if config.checkpoint.max_kept > 0:
-    #     if epoch >= config.checkpoint.max_kept:
-    #         logger.info(f'Epoch: {epoch}, greater than config.checkpoint.max_kept: {config.checkpoint.max_kept}')
-    #         end_clean_epoch = epoch - config.checkpoint.max_kept
-    #         old_path_list = []
-    #         for cur_clean_epoch in range(end_clean_epoch + 1):
-    #             old_path = os.path.join(config.output, f'ckpt_epoch_{cur_clean_epoch}{suffix}.pth')
-    #             if os.path.exists(old_path):
-    #                 logger.info(f'old checkpoint path {old_path} exits')
-    #                 old_path_list.append(old_path)
-    #         for old_path in old_path_list[:-config.checkpoint.max_kept]:
-    #             os.remove(old_path)
-    #             logger.info(f'old checkpoint path {old_path} removed!!!')
 
 def get_grad_norm(parameters, norm_type=2):
     if isinstance(parameters, torch.Tensor):

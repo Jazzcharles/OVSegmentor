@@ -34,6 +34,7 @@ from segmentation.evaluation import build_seg_dataloader, build_seg_dataset, bui
 from utils import get_config, get_logger, load_checkpoint
 from transformers import AutoTokenizer, RobertaTokenizer
 from ipdb import set_trace
+from main_pretrain import init_distributed_mode
 
 try:
     # noinspection PyUnresolvedReferences
@@ -49,7 +50,7 @@ tokenizer_dict = {
 }
 
 def parse_args():
-    parser = argparse.ArgumentParser('GroupViT segmentation evaluation and visualization')
+    parser = argparse.ArgumentParser('OVSegmentor segmentation evaluation and visualization')
     parser.add_argument(
         '--cfg',
         type=str,
@@ -169,75 +170,6 @@ def vis_seg(config, data_loader, model, vis_modes):
                 batch_size = len(result) * dist.get_world_size()
                 for _ in range(batch_size):
                     prog_bar.update()    
-
-
-def setup_for_distributed(is_master):
-    """
-    This function disables printing when not in master process
-    """
-    import builtins as __builtin__
-    builtin_print = __builtin__.print
-
-    def print(*args, **kwargs):
-        force = kwargs.pop('force', False)
-        if is_master or force:
-            builtin_print(*args, **kwargs)
-
-    __builtin__.print = print
-
-def init_distributed_mode(args):
-    # launched with torch.distributed.launch
-    if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        args.rank = int(os.environ["RANK"])
-        args.world_size = int(os.environ['WORLD_SIZE'])
-        args.gpu = int(os.environ['LOCAL_RANK'])
-    # launched with submitit on a slurm cluster
-    elif 'SLURM_PROCID' in os.environ:
-        #args.rank = int(os.environ['SLURM_PROCID'])
-        #args.gpu = args.rank % torch.cuda.device_count()
-        proc_id = int(os.environ['SLURM_PROCID'])
-        ntasks = os.environ['SLURM_NTASKS']
-        node_list = os.environ['SLURM_NODELIST']
-        num_gpus = torch.cuda.device_count()
-        addr = subprocess.getoutput(
-            'scontrol show hostname {} | head -n1'.format(node_list)
-        )
-        master_port = os.environ.get('MASTER_PORT', '29499')
-        os.environ['MASTER_PORT'] = master_port
-        os.environ['MASTER_ADDR'] = addr
-        os.environ['WORLD_SIZE'] = str(ntasks)
-        os.environ['RANK'] = str(proc_id)
-        os.environ['LOCAL_RANK'] = str(proc_id % num_gpus)
-        os.environ['LOCAL_SIZE'] = str(num_gpus)
-        args.dist_url = 'env://'
-        args.world_size = int(ntasks)
-        args.rank = int(proc_id)
-        args.gpu = int(proc_id % num_gpus)
-        print(f'SLURM MODE: proc_id: {proc_id}, ntasks: {ntasks}, node_list: {node_list}, num_gpus:{num_gpus}, addr:{addr}, master port:{master_port}' )
-        
-    # launched naively with `python main_dino.py`
-    # we manually add MASTER_ADDR and MASTER_PORT to env variables
-    elif torch.cuda.is_available():
-        print('Will run the code on one GPU.')
-        args.rank, args.gpu, args.world_size = 0, 0, 1
-        os.environ['MASTER_ADDR'] = '127.0.0.1'
-        os.environ['MASTER_PORT'] = '29500'
-    else:
-        print('Does not support training without GPU.')
-        sys.exit(1)
-
-    dist.init_process_group(
-        backend="nccl",
-        init_method=args.dist_url,
-        world_size=args.world_size,
-        rank=args.rank,
-    )
-
-    torch.cuda.set_device(args.gpu)
-    print('| distributed init (rank {}): {}'.format(
-        args.rank, args.dist_url), flush=True)
-    dist.barrier()
-    setup_for_distributed(args.rank == 0)
 
 def main():
     args = parse_args()

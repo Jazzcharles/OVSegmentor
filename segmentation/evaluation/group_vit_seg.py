@@ -126,8 +126,6 @@ def seg2coord(seg_map):
 
 
 class GroupViTSegInference(EncoderDecoder):
-
-    # def __init__(self, model, text_embedding, with_bg, test_cfg=dict(mode='whole', bg_thresh=.95, use_clip=False)):
     def __init__(self, model, text_embedding, with_bg, test_cfg=dict(mode='whole', bg_thresh=.95)):
         super(EncoderDecoder, self).__init__()
         if not isinstance(test_cfg, mmcv.Config):
@@ -286,7 +284,7 @@ class GroupViTSegInference(EncoderDecoder):
     def show_result(self, img_show, img_tensor, result, out_file, vis_mode='pred'):
         print('current vis mode: ', vis_mode)
         assert vis_mode in [
-            'input', 'pred', 'input_pred', 'all_groups', 'first_group', 'final_group', 'input_pred_label'
+            'input', 'pred', 'input_pred', 'all_groups', 'first_group', 'final_group', 'input_pred_label', 'mask',
         ], vis_mode
 
         if vis_mode == 'input':
@@ -373,6 +371,12 @@ class GroupViTSegInference(EncoderDecoder):
                     palette=GROUP_PALETTE[sum(num_groups[:layer_idx]):sum(num_groups[:layer_idx + 1])],
                     out_file=layer_out_file,
                     opacity=0.5)
+        elif vis_mode == 'mask':
+            mask = result[0]
+            mask = Image.fromarray(mask.astype(np.uint8)).convert('P')
+            # mask.putpalette(np.array(self.PALETTE).astype(np.uint8))
+            mmcv.mkdir_or_exist(osp.dirname(out_file))
+            mask.save(out_file.replace('.jpg', '.png'))
         else:
             raise ValueError(f'Unknown vis_type: {vis_mode}')
         

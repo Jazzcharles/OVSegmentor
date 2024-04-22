@@ -83,7 +83,8 @@ def parse_args():
     parser.add_argument(
         '--amp-opt-level',
         type=str,
-        default='O1',
+        # default='O1',
+        default='O0',
         choices=['O0', 'O1', 'O2'],
         help='mixed precision opt level, if O0, no amp is used')
     parser.add_argument(
@@ -525,7 +526,7 @@ def init_distributed_mode(args):
         addr = subprocess.getoutput(
             'scontrol show hostname {} | head -n1'.format(node_list)
         )
-        master_port = os.environ.get('MASTER_PORT', '29484')
+        master_port = os.environ.get('MASTER_PORT', '29488')
         os.environ['MASTER_PORT'] = master_port
         os.environ['MASTER_ADDR'] = addr
         os.environ['WORLD_SIZE'] = str(ntasks)

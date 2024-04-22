@@ -2,106 +2,30 @@ _base_: '../default.yml'
 model_name: 'ovsegmentor_pretrain_vit_bert_cc4m_stage1' # display name in the logger
 output: /mnt/petrelfs/xujilan/exps/final_exps/
 
-print_freq: 100
 data:
-  with_dc: False
   train: 
-      root_dir: [
-                  's3://GCC/GCC12m/',
-                ]
-      meta_file: [
-                  '/mnt/petrelfs/xujilan/data/cc12m_100/cc4m.json',
-                ]
-      # read_from: petrel
-      read_from: dir
-      use_dali: True
-      batch_size: 256
-      input_size: 224
-      test_resize: 256
-
-      image_reader:
-          type: pil
-      sampler:
-          type: distributed_epoch
-      transforms:
-          type: STANDARD
-      fseek: True
-      use_ranked: False
-      
-      use_entity: ${model.use_entityloss}
-      mask_type: class
-      use_distilbert: True
-  
-  val:
-      type: clip
+      root_dir: 's3://GCC/GCC12m/'
+      meta_file: '/mnt/petrelfs/xujilan/data/cc12m_100/subsets/cc12m_filtered_subset_pair_debug.csv'
       read_from: petrel
-      use_dali: True
-      batch_size: 64
-      num_workers: 4
-      pin_memory: False
-      input_size: 224
-      test_resize: 256
-      
+      batch_size: 256
+  val:
       root_dir: '/mnt/cache/share/images/val/'
-      meta_file: 'imagenet_info/val.json'
-      # you can change it to imagenet_info relative path, file already in gitlab
-      image_reader:
-          type: pil
-      sampler:
-          type: distributed
-      transforms:
-          type: ONECROP
-      evaluator:
-          type: imagenet
-          kwargs:
-              topk: [1, 5]
-      label_texts_ensemble: 'prompt1'
           
   img_aug:
     deit_aug: true
     img_size: 224
     img_scale: [0.08, 1.0]
     interpolation: 'bilinear'
-    # interpolation: 2
     color_jitter: 0.4
     auto_augment: 'rand-m9-mstd0.5-inc1'
     re_prob: 0.25
     re_mode: 'pixel'
     re_count: 1
-  text_aug:
-    max_seq_len: 77
-    multi_label: 0 # we do not use multi-label contrastive 
-    word_type: 'noun'
 
 model:
-  type: MultiLabelContrastive
   img_encoder:
-    type: GroupViT
-    embed_dim: 768
-    num_heads: [8, 8]
-    embed_factors: [1, 1]
-    depths: [6, 6]
-    num_group_tokens: [64, 0]
-    num_output_groups: [8]
-    drop_rate: 0.0
-    drop_path_rate: 0.1
-    patch_norm: false
-    imgnet_pretrained: 'dino'
-    fixed: false
     imgnet_pretrained_checkpoint: '/mnt/petrelfs/xujilan/checkpoints/dino_vitbase16_pretrain.pth'
 
-  text_encoder:
-    type: Bert
-    context_length: 77
-    width: 768
-    layers: 6
-    vocab_size: 49408
-    pretrained: true
-    fixed: false
-  contrast_temperature: 0.07
-  proj_num_layers: 2
-  output_dim: 256
-  multi_label: ${data.text_aug.multi_label}
   use_entityloss: true
   
 train:
@@ -109,7 +33,3 @@ train:
   base_lr: 6.4e-4
   warmup_lr: 1.6e-5
   min_lr: 1.6e-4
-checkpoint:
-  save_freq: 1
-evaluate:
-  eval_freq: 1

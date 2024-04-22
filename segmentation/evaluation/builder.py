@@ -30,6 +30,18 @@ def build_seg_dataset(config):
     return dataset
 
 
+def build_custom_seg_dataset(config, args):
+    """Build a dataset from config."""
+    cfg = mmcv.Config.fromfile(config.cfg)
+    
+    cfg.data.test.data_root = args.image_folder
+    cfg.data.test.img_dir = ''
+    cfg.data.test.ann_dir = '' ## unsure
+    cfg.data.test.split = 'image_list.txt'
+
+    dataset = build_dataset(cfg.data.test)
+    return dataset
+    
 def build_seg_dataloader(dataset):
 
     data_loader = build_dataloader(
@@ -47,6 +59,7 @@ def build_seg_inference(model, dataset, text_transform, config, tokenizer=None):
     cfg = mmcv.Config.fromfile(config.cfg)
     if len(config.opts):
         cfg.merge_from_dict(OmegaConf.to_container(OmegaConf.from_dotlist(OmegaConf.to_container(config.opts))))
+    
     with_bg = dataset.CLASSES[0] == 'background'
     if with_bg:
         classnames = dataset.CLASSES[1:]
@@ -65,13 +78,60 @@ def build_seg_inference(model, dataset, text_transform, config, tokenizer=None):
         kwargs['test_cfg'] = cfg.test_cfg
     
     seg_model = GroupViTSegInference(model, text_embedding, **kwargs)
-    print('Evaluate GroupViT during seg inference')
+    print('Evaluate during seg inference')
 
     seg_model.CLASSES = dataset.CLASSES
     seg_model.PALETTE = dataset.PALETTE
 
     return seg_model
 
+def build_demo_inference(model, text_transform, config, tokenizer=None):
+    seg_config = config.evaluate.seg
+    cfg = mmcv.Config.fromfile(seg_config.cfg)
+    if len(seg_config.opts):
+        cfg.merge_from_dict(OmegaConf.to_container(OmegaConf.from_dotlist(OmegaConf.to_container(seg_config.opts))))
+
+    with_bg = True
+    from segmentation.datasets.ade20k import ADE20KDataset
+    from segmentation.datasets.coco_object import COCOObjectDataset
+    from segmentation.datasets.pascal_voc import PascalVOCDataset
+
+    if config.vocab == ['voc']:
+        classnames = PascalVOCDataset.CLASSES
+        palette = PascalVOCDataset.PALETTE
+    elif config.vocab == ['coco']:
+        classnames = COCOObjectDataset.CLASSES
+        palette = COCOObjectDataset.PALETTE
+    elif config.vocab == ['ade']:
+        classnames = ADE20KDataset.CLASSES
+        palette = ADE20KDataset.PALETTE
+    else:
+        classnames = config.vocab
+        palette = ADE20KDataset.PALETTE[:len(classnames)]
+        
+    if classnames[0] == 'background':
+        classnames = classnames[1:]
+
+    print('candidate CLASSES: ', classnames)
+    print('Using palette: ',     palette)
+    
+    if tokenizer is not None:
+        text_tokens = build_dataset_class_lists(seg_config.template, classnames)
+        text_embedding = model.build_text_embedding(text_tokens, tokenizer, num_classes=len(classnames))
+    else:
+        text_tokens = build_dataset_class_tokens(text_transform, seg_config.template, classnames)
+        text_embedding = model.build_text_embedding(text_tokens, num_classes=len(classnames))
+    kwargs = dict(with_bg=with_bg)
+
+    if hasattr(cfg, 'test_cfg'):
+        kwargs['test_cfg'] = cfg.test_cfg
+    
+    seg_model = GroupViTSegInference(model, text_embedding, **kwargs)
+    print('Evaluate during seg inference')
+
+    seg_model.CLASSES = tuple(['background'] + list(classnames))
+    seg_model.PALETTE = palette
+    return seg_model
 
 class LoadImage:
     """A simple pipeline to load image."""

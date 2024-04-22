@@ -35,7 +35,7 @@ def get_config(args):
     if args.opts is not None:
         cfg = OmegaConf.merge(cfg, OmegaConf.from_dotlist(args.opts))
     if hasattr(args, 'batch_size') and args.batch_size:
-        cfg.data.batch_size = args.batch_size
+        cfg.data.train.batch_size = args.batch_size
 
     if hasattr(args, 'amp_opt_level') and args.amp_opt_level:
         cfg.train.amp_opt_level = args.amp_opt_level
@@ -53,7 +53,7 @@ def get_config(args):
         cfg.model_name = osp.splitext(osp.basename(args.cfg))[0]
 
     world_size = int(os.environ.get('WORLD_SIZE', 1))
-    cfg.model_name = cfg.model_name + f'_bs{cfg.data.batch_size}x{world_size}'
+    cfg.model_name = cfg.model_name + f'_bs{cfg.data.train.batch_size}x{world_size}'
 
     # if hasattr(args, 'output') and args.output:
         # cfg.output = args.output
@@ -72,6 +72,13 @@ def get_config(args):
     if hasattr(args, 'vis') and args.vis:
         cfg.vis = args.vis
 
+    ### for demo only ###
+    if hasattr(args, 'vocab') and args.vocab:
+        cfg.vocab = args.vocab
+    if hasattr(args, 'image_folder') and args.image_folder:
+        cfg.image_folder = args.image_folder
+    if hasattr(args, 'output_folder') and args.output_folder:
+        cfg.output_folder = args.output_folder
     cfg.local_rank = args.local_rank
 
     OmegaConf.set_readonly(cfg, True)

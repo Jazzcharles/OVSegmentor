@@ -14,6 +14,7 @@
 # -------------------------------------------------------------------------
 
 from .builder import build_seg_dataloader, build_seg_dataset, build_seg_demo_pipeline, build_seg_inference
+from .builder import build_demo_inference, build_custom_seg_dataset
 from .group_vit_seg import GROUP_PALETTE, GroupViTSegInference
 
 __all__ = [
