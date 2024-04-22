@@ -7,7 +7,7 @@ data:
       root_dir: 's3://GCC/GCC12m/'
       meta_file: '/mnt/petrelfs/xujilan/data/cc12m_100/subsets/cc12m_filtered_subset_pair_debug.csv'
       read_from: petrel
-      batch_size: 4 # 128
+      batch_size: 128
   val:
       root_dir: '/mnt/cache/share/images/val/'
 
